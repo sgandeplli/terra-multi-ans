@@ -1,0 +1,56 @@
+pipeline {
+    agent any
+    environment {
+        GOOGLE_APPLICATION_CREDENTIALS = credentials('gcp-sa')
+    }
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/sgandeplli/terraform_ansible.git'
+            }
+        }
+        stage('Terraform Init & Apply') {
+            steps {
+                withCredentials([file(credentialsId: 'gcp-sa', variable: 'GOOGLE_APPLICATION_CREDENTIALS')]) {
+                    sh 'terraform init'
+                    sh 'terraform apply -auto-approve'
+                }
+            }
+        }
+                stage('Wait for VM to be ready') {
+            steps {
+                sleep(time: 30, unit: "SECONDS")  // Adjust this time based on your VM startup time
+            }
+        }
+        stage('Generate and Update Ansible Inventory') {
+            steps {
+                script {
+                    def vmIp = sh(script: "terraform output -raw vm_ip", returnStdout: true).trim()
+                    def inventoryContent = """
+                    all:
+                      hosts:
+                        web:
+                          ansible_host: ${vmIp}
+                          ansible_user: centos
+                          ansible_ssh_private_key_file: /root/.ssh/id_rsa
+                    """
+                    writeFile file: '/var/lib/jenkins/workspace/terra-multi-ans/inventory.gcp.yml', text: inventoryContent
+                }
+            }
+        }
+        stage('Add Host Key') {
+            steps {
+                script {
+                    def vmIp = sh(script: "terraform output -raw vm_ip", returnStdout: true).trim()
+                    sh "ssh-keyscan -H ${vmIp} >> /root/.ssh/known_hosts || true"
+                }
+            }
+        }
+        stage('Install Apache using Ansible') {
+            steps {
+                sh 'ansible-playbook -i /var/lib/jenkins/workspace/terra-multi-ans/inventory.gcp.yml /var/lib/jenkins/workspace/terra-multi-ans/apache_install.yml'
+            }
+        }
+    }
+    
+}
