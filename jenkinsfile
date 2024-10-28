@@ -17,57 +17,56 @@ pipeline {
                 }
             }
         }
-                stage('Wait for VM to be ready') {
+        stage('Wait for VM to be ready') {
             steps {
                 sleep(time: 30, unit: "SECONDS")  // Adjust this time based on your VM startup time
             }
         }
-       stage('Generate and Update Ansible Inventory') {
-    steps {
-        script {
-            // Capture the JSON output and parse it
-            def vmIpJson = sh(script: "terraform output -json vm_ips", returnStdout: true).trim()
-            def vmIps = readJSON text: vmIpJson
+        stage('Generate and Update Ansible Inventory') {
+            steps {
+                script {
+                    // Capture the JSON output and parse it
+                    def vmIpJson = sh(script: "terraform output -json vm_ips", returnStdout: true).trim()
+                    def vmIps = readJSON text: vmIpJson
 
-            // Create inventory content with multiple hosts
-            def inventoryContent = """
-            all:
-              hosts:
-            """
+                    // Create inventory content with multiple hosts
+                    def inventoryContent = """
+                    all:
+                      children:
+                        web:
+                          hosts:
+                    """
 
-            // Iterate over the IPs and append to inventory content
-            for (int i = 0; i < vmIps.size(); i++) {
-                inventoryContent += """
-                  web_ansible-${i + 1}:
-                    ansible_host: ${vmIps[i]}
-                    ansible_user: centos
-                    ansible_ssh_private_key_file: /root/.ssh/id_rsa
-                """
+                    // Iterate over the IPs and append to inventory content
+                    for (int i = 0; i < vmIps.size(); i++) {
+                        inventoryContent += """
+                          web_ansible-${i + 1}:
+                            ansible_host: ${vmIps[i]}
+                            ansible_user: centos
+                            ansible_ssh_private_key_file: /root/.ssh/id_rsa
+                        """
+                    }
+
+                    // Write the inventory content to the file
+                    writeFile file: '/var/lib/jenkins/workspace/terra-multi-ans/inventory.gcp.yml', text: inventoryContent
+
+                    // Debug: Print the inventory file content
+                    sh 'cat /var/lib/jenkins/workspace/terra-multi-ans/inventory.gcp.yml'
+                }
             }
-
-            // Write the inventory content to the file
-            writeFile file: '/var/lib/jenkins/workspace/terra-multi-ans/inventory.gcp.yml', text: inventoryContent
         }
-    }
-}
-
         stage('Add Host Key') {
-    steps {
-        script {
-            def vmIpJson = sh(script: "terraform output -json vm_ips", returnStdout: true).trim()
-            def vmIps = readJSON text: vmIpJson
-            vmIps.each { ip ->
-                sh "ssh-keyscan -H ${ip} >> /var/lib/jenkins/.ssh/known_hosts || true"
+            steps {
+                script {
+                    def vmIp = sh(script: "terraform output -json vm_ips", returnStdout: true).trim()
+                    sh "ssh-keyscan -H ${vmIp} >> /root/.ssh/known_hosts || true"
+                }
             }
         }
-    }
-}
-
         stage('Install Apache using Ansible') {
             steps {
                 sh 'ansible-playbook -i /var/lib/jenkins/workspace/terra-multi-ans/inventory.gcp.yml /var/lib/jenkins/workspace/terra-multi-ans/apache_install.yml'
             }
         }
     }
-    
 }
