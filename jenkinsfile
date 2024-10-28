@@ -25,7 +25,7 @@ pipeline {
         stage('Generate and Update Ansible Inventory') {
             steps {
                 script {
-                    def vmIp = sh(script: "terraform output -raw vm_ip", returnStdout: true).trim()
+                    def vmIp = sh(script: "terraform output -raw vm_ips", returnStdout: true).trim()
                     def inventoryContent = """
                     all:
                       hosts:
