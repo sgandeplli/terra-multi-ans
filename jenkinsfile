@@ -40,10 +40,10 @@ pipeline {
                     // Iterate over the IPs and append to inventory content
                     for (int i = 0; i < vmIps.size(); i++) {
                         inventoryContent += """
-                          web_ansible-${i + 1}:
-                            ansible_host: ${vmIps[i]}
-                            ansible_user: centos
-                            ansible_ssh_private_key_file: /root/.ssh/id_rsa
+                              web_ansible-${i + 1}:
+                                ansible_host: ${vmIps[i]}
+                                ansible_user: centos
+                                ansible_ssh_private_key_file: /root/.ssh/id_rsa
                         """
                     }
 
