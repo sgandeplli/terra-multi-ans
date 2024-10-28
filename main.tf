@@ -59,3 +59,4 @@ resource "null_resource" "generate_inventory" {
 
 
 
+
