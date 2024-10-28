@@ -45,7 +45,7 @@ resource "null_resource" "generate_inventory" {
       for i in $(seq 0 ${var.instance_count - 1}); do
         INSTANCE_IP=$(terraform output -json vm_ips | jq -r ".[$i]")  # Get the IP from the output
         echo "    web_ansible-$((i + 1)):" >> /var/lib/jenkins/workspace/terra-multi-ans/inventory.gcp.yml
-        echo "      ansible_host: ${INSTANCE_IP}" >> /var/lib/jenkins/workspace/terra-multi-ans/inventory.gcp.yml
+        echo "      ansible_host: \$INSTANCE_IP" >> /var/lib/jenkins/workspace/terra-multi-ans/inventory.gcp.yml
         echo "      ansible_user: centos" >> /var/lib/jenkins/workspace/terra-multi-ans/inventory.gcp.yml
         echo "      ansible_ssh_private_key_file: /root/.ssh/id_rsa" >> /var/lib/jenkins/workspace/terra-multi-ans/inventory.gcp.yml
       done
@@ -54,4 +54,5 @@ resource "null_resource" "generate_inventory" {
 
   depends_on = [google_compute_instance.centos_vm]
 }
+
 
