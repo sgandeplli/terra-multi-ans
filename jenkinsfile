@@ -54,7 +54,7 @@ pipeline {
         stage('Add Host Key') {
             steps {
                 script {
-                    def vmIp = sh(script: "terraform output -raw vm_ips", returnStdout: true).trim()
+                    def vmIp = sh(script: "terraform output -json vm_ips", returnStdout: true).trim()
                     sh "ssh-keyscan -H ${vmIp} >> /root/.ssh/known_hosts || true"
                 }
             }
