@@ -17,7 +17,7 @@ pipeline {
                 }
             }
         }
-                stage('Wait for VM to be ready') {
+        stage('Wait for VM to be ready') {
             steps {
                 sleep(time: 30, unit: "SECONDS")  // Adjust this time based on your VM startup time
             }
@@ -25,15 +25,21 @@ pipeline {
         stage('Generate and Update Ansible Inventory') {
             steps {
                 script {
-                    def vmIp = sh(script: "terraform output -raw vm_ips", returnStdout: true).trim()
+                    def vmIps = sh(script: "terraform output -json vm_ips", returnStdout: true).trim()
                     def inventoryContent = """
                     all:
                       hosts:
-                        web:
-                          ansible_host: ${vmIp}
-                          ansible_user: centos
-                          ansible_ssh_private_key_file: /root/.ssh/id_rsa
                     """
+                    // Process each IP in vmIps
+                    def ipList = readJSON text: vmIps
+                    ipList.eachWithIndex { ip, index ->
+                        inventoryContent += """
+                          web_ansible-${index + 1}:
+                            ansible_host: ${ip}
+                            ansible_user: centos
+                            ansible_ssh_private_key_file: /root/.ssh/id_rsa
+                        """
+                    }
                     writeFile file: '/var/lib/jenkins/workspace/terra-multi-ans/inventory.gcp.yml', text: inventoryContent
                 }
             }
@@ -41,8 +47,11 @@ pipeline {
         stage('Add Host Key') {
             steps {
                 script {
-                    def vmIp = sh(script: "terraform output -raw vm_ip", returnStdout: true).trim()
-                    sh "ssh-keyscan -H ${vmIp} >> /root/.ssh/known_hosts || true"
+                    def vmIps = sh(script: "terraform output -json vm_ips", returnStdout: true).trim()
+                    def ipList = readJSON text: vmIps
+                    ipList.each { vmIp ->
+                        sh "ssh-keyscan -H ${vmIp} >> /root/.ssh/known_hosts || true"
+                    }
                 }
             }
         }
@@ -52,5 +61,4 @@ pipeline {
             }
         }
     }
-    
 }
