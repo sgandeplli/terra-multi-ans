@@ -22,22 +22,35 @@ pipeline {
                 sleep(time: 30, unit: "SECONDS")  // Adjust this time based on your VM startup time
             }
         }
-        stage('Generate and Update Ansible Inventory') {
-            steps {
-                script {
-                    def vmIp = sh(script: "terraform output -raw vm_ips", returnStdout: true).trim()
-                    def inventoryContent = """
-                    all:
-                      hosts:
-                        web:
-                          ansible_host: ${vmIp}
-                          ansible_user: centos
-                          ansible_ssh_private_key_file: /root/.ssh/id_rsa
-                    """
-                    writeFile file: '/var/lib/jenkins/workspace/terra-multi-ans/inventory.gcp.yml', text: inventoryContent
-                }
+       stage('Generate and Update Ansible Inventory') {
+    steps {
+        script {
+            // Capture the JSON output and parse it
+            def vmIpJson = sh(script: "terraform output -json vm_ips", returnStdout: true).trim()
+            def vmIps = readJSON text: vmIpJson
+
+            // Create inventory content with multiple hosts
+            def inventoryContent = """
+            all:
+              hosts:
+            """
+
+            // Iterate over the IPs and append to inventory content
+            for (int i = 0; i < vmIps.size(); i++) {
+                inventoryContent += """
+                  web_ansible-${i + 1}:
+                    ansible_host: ${vmIps[i]}
+                    ansible_user: centos
+                    ansible_ssh_private_key_file: /root/.ssh/id_rsa
+                """
             }
+
+            // Write the inventory content to the file
+            writeFile file: '/var/lib/jenkins/workspace/terra-multi-ans/inventory.gcp.yml', text: inventoryContent
         }
+    }
+}
+
         stage('Add Host Key') {
             steps {
                 script {
