@@ -82,7 +82,7 @@ stage('Cleanup known_hosts') {
     }
 }
 
-stage('Cleanup known_hosts') {
+stage('Cleanup known_hosts11') {
     steps {
         script {
             // Retrieve the VM IPs in JSON format
