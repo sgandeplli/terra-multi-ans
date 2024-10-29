@@ -55,7 +55,7 @@ pipeline {
                 }
             }
         }
-/*        stage('Add Host Key') {
+       stage('Add Host Key') {
     steps {
         script {
             def vmIpJson = sh(script: "terraform output -json vm_ips", returnStdout: true).trim()
@@ -81,7 +81,7 @@ stage('Cleanup known_hosts') {
         }
     }
 }
-*/
+
 stage('Cleanup known_hosts') {
     steps {
         script {
