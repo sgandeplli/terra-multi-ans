@@ -67,7 +67,7 @@ pipeline {
         }
     }
 }  
-
+/*
 
 stage('Cleanup known_hosts11') {
     steps {
@@ -94,7 +94,7 @@ stage('Cleanup known_hosts11') {
         }
     }
 }
-
+*/
 
         stage('Install Apache using Ansible') {
             steps {
