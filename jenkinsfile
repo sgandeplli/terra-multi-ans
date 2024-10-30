@@ -68,19 +68,6 @@ pipeline {
     }
 }  
 
-stage('Cleanup known_hosts') {
-    steps {
-        script {
-            def vmIpJson = sh(script: "terraform output -json vm_ips", returnStdout: true).trim()
-            def vmIps = readJSON text: vmIpJson
-
-            // Remove old entries for each IP
-            for (int i = 0; i < vmIps.size(); i++) {
-                sh "ssh-keygen -R ${vmIps[i]} || true"
-            }
-        }
-    }
-}
 
 stage('Cleanup known_hosts11') {
     steps {
